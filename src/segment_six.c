@@ -73,21 +73,23 @@ static void prv_hour_display_update_proc(Layer *layer, GContext* ctx) {
   }
 }
 
-static void prv_handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
+static void prv_mark_dirty() {
   layer_mark_dirty(s_minute_display_layer);
   layer_mark_dirty(s_hour_display_layer);
+}
+
+static void prv_handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
+  prv_mark_dirty();
 }
 
 // Event fires frequently, while obstruction is appearing or disappearing
 static void prv_unobstructed_change(AnimationProgress progress, void *context) {
-  layer_mark_dirty(s_minute_display_layer);
-  layer_mark_dirty(s_hour_display_layer);
+  prv_mark_dirty();
 }
 
 // Event fires once, after obstruction appears or disappears
 static void prv_unobstructed_did_change(void *context) {
-  layer_mark_dirty(s_minute_display_layer);
-  layer_mark_dirty(s_hour_display_layer);
+  prv_mark_dirty();
 }
 
 static void prv_main_window_load(Window *window) {
