@@ -23,15 +23,18 @@ static Layer *s_minute_display_layer, *s_hour_display_layer;
 
 static GPath *s_minute_segment_path, *s_hour_segment_path;
 
-static void minute_display_update_proc(Layer *layer, GContext* ctx) {
+static void prv_minute_display_update_proc(Layer *layer, GContext* ctx) {
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
 
   unsigned int angle = t->tm_min * 6;
   gpath_rotate_to(s_minute_segment_path, (TRIG_MAX_ANGLE / 360) * angle);
 
-  GRect bounds = layer_get_bounds(layer);
+  GRect bounds = layer_get_unobstructed_bounds(layer);
   GPoint center = grect_center_point(&bounds);
+
+  gpath_move_to(s_minute_segment_path, center);
+
   graphics_context_set_fill_color(ctx, GColorWhite);
   graphics_fill_circle(ctx, center, 77);
   graphics_context_set_fill_color(ctx, GColorBlack);
@@ -39,13 +42,15 @@ static void minute_display_update_proc(Layer *layer, GContext* ctx) {
   graphics_fill_circle(ctx, center, 52);
 }
 
-static void hour_display_update_proc(Layer *layer, GContext* ctx) {
+static void prv_hour_display_update_proc(Layer *layer, GContext* ctx) {
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
 
   unsigned int angle = (t->tm_hour % 12) * 30;
-  GRect bounds = layer_get_bounds(layer);
+  GRect bounds = layer_get_unobstructed_bounds(layer);
   GPoint center = grect_center_point(&bounds);
+
+  gpath_move_to(s_hour_segment_path, center);
 
   graphics_context_set_fill_color(ctx, GColorWhite);
   graphics_fill_circle(ctx, center, 48);
@@ -68,31 +73,50 @@ static void hour_display_update_proc(Layer *layer, GContext* ctx) {
   }
 }
 
-static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
+static void prv_handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
   layer_mark_dirty(s_minute_display_layer);
   layer_mark_dirty(s_hour_display_layer);
 }
 
-static void main_window_load(Window *window) {
+// Event fires frequently, while obstruction is appearing or disappearing
+static void prv_unobstructed_change(AnimationProgress progress, void *context) {
+  layer_mark_dirty(s_minute_display_layer);
+  layer_mark_dirty(s_hour_display_layer);
+}
+
+// Event fires once, after obstruction appears or disappears
+static void prv_unobstructed_did_change(void *context) {
+  layer_mark_dirty(s_minute_display_layer);
+  layer_mark_dirty(s_hour_display_layer);
+}
+
+static void prv_main_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
-  GRect bounds = layer_get_bounds(window_layer);
+  GRect bounds = layer_get_unobstructed_bounds(window_layer);
 
   s_minute_display_layer = layer_create(bounds);
-  layer_set_update_proc(s_minute_display_layer, minute_display_update_proc);
+  layer_set_update_proc(s_minute_display_layer, prv_minute_display_update_proc);
   layer_add_child(window_layer, s_minute_display_layer);
 
   s_minute_segment_path = gpath_create(&MINUTE_SEGMENT_PATH_POINTS);
   gpath_move_to(s_minute_segment_path, grect_center_point(&bounds));
 
   s_hour_display_layer = layer_create(bounds);
-  layer_set_update_proc(s_hour_display_layer, hour_display_update_proc);
+  layer_set_update_proc(s_hour_display_layer, prv_hour_display_update_proc);
   layer_add_child(window_layer, s_hour_display_layer);
 
   s_hour_segment_path = gpath_create(&HOUR_SEGMENT_PATH_POINTS);
   gpath_move_to(s_hour_segment_path, grect_center_point(&bounds));
+
+  // Subscribe to the unobstructed area events
+  UnobstructedAreaHandlers handlers = {
+    .change = prv_unobstructed_change,
+    .did_change = prv_unobstructed_did_change
+  };
+  unobstructed_area_service_subscribe(handlers, NULL);
 }
 
-static void main_window_unload(Window *window) {
+static void prv_main_window_unload(Window *window) {
   gpath_destroy(s_minute_segment_path);
   gpath_destroy(s_hour_segment_path);
 
@@ -100,26 +124,26 @@ static void main_window_unload(Window *window) {
   layer_destroy(s_hour_display_layer);
 }
 
-static void init() {
+static void prv_init() {
   s_main_window = window_create();
   window_set_background_color(s_main_window, GColorBlack);
   window_set_window_handlers(s_main_window, (WindowHandlers) {
-    .load = main_window_load,
-    .unload = main_window_unload,
+    .load = prv_main_window_load,
+    .unload = prv_main_window_unload,
   });
   window_stack_push(s_main_window, true);
 
-  tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+  tick_timer_service_subscribe(MINUTE_UNIT, prv_handle_minute_tick);
 }
 
-static void deinit() {
+static void prv_deinit() {
   window_destroy(s_main_window);
 
   tick_timer_service_unsubscribe();
 }
 
 int main() {
-  init();
+  prv_init();
   app_event_loop();
-  deinit();
+  prv_deinit();
 }

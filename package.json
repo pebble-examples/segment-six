@@ -1,0 +1,41 @@
+{
+  "version": "2.1.0",
+  "author": "Pebble Technology",
+  "private": true,
+  "dependencies": {},
+  "keywords": [
+    "pebble-app"
+  ],
+  "pebble": {
+    "sdkVersion": "3",
+    "resources": {
+      "media": [
+        {
+          "menuIcon": true,
+          "type": "bitmap",
+          "name": "IMAGE_MENU_ICON",
+          "file": "images/menu_icon_sector_watch.png"
+        }
+      ]
+    },
+    "projectType": "native",
+    "uuid": "1e8d28ef-e169-4924-a8b8-76c32faa7a66",
+    "messageKeys": {},
+    "enableMultiJS": false,
+    "displayName": "Segment Six",
+    "watchapp": {
+      "onlyShownOnCommunication": false,
+      "hiddenApp": false,
+      "watchface": true
+    },
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite",
+      "emery"
+    ],
+    "capabilities": []
+  },
+  "name": "Segment Six"
+}
