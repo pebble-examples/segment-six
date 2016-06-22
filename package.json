@@ -1,4 +1,5 @@
 {
+	"name": "Segment Six",
   "version": "2.1.0",
   "author": "Pebble Technology",
   "private": true,
@@ -36,6 +37,5 @@
       "emery"
     ],
     "capabilities": []
-  },
-  "name": "Segment Six"
+  }
 }
